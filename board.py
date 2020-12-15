@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Contain the Board class"""
+"""Contains the Board class"""
 from insects import insect_list
+from color import Color
 from constants import NUMBERS
 
 
@@ -53,10 +54,7 @@ class Board:
                     i, j = i + int(key), j + int(key)
                     cells += int(key)
                 else:
-                    if key == key.lower():
-                        color = 'white'
-                    else:
-                        color = 'black'
+                    color = Color(key == key.lower())  # create a color object based on the key (lowercase or uppercase)
                     for insect in insect_list:
                         if key.lower() == insect.id():
                             self[i, j] = insect((i, j), color)

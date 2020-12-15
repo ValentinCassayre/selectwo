@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Contain the Insects classes"""
+"""Contains the Insects classes"""
 
 
 class Insect:
@@ -23,10 +23,10 @@ class Insect:
 
     def real_id(self, name=False):
         """return non-static information about the class"""
-        if self.color == 'black':
-            return self.id(name).upper()
-        else:
+        if self.color:
             return self.id(name)
+        else:
+            return self.id(name).upper()
 
     @staticmethod
     def id(name=False):
