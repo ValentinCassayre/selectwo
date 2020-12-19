@@ -18,6 +18,7 @@ class Insect:
         self.range = range(1, len(self.board))
 
         # class property
+        self.leader = False
 
         # update pos
         self.pos = pos
@@ -44,11 +45,12 @@ class Insect:
         for direction in self.directions:
             for pos in direction:
                 if pos in self.board.cells:
-                    if self.board[pos] is None:
-                        self.moves.append(pos)
-                    elif self.board[pos].color != self.color:
-                        self.moves.append(pos)
+                    if self.board[pos] is not None:
+                        if self.board[pos].color != self.color:
+                            self.moves.append(pos)
                         break
+                    self.moves.append(pos)
+
         for pos in self.eats:
             if pos in self.board.cells:
                 if self.board[pos] is not None and self.board[pos].color != self.color:
@@ -204,6 +206,7 @@ class Ant(Insect):
     # one use methods
     def __init__(self, pos, color, board):
         Insect.__init__(self, pos, color, board)
+        self.leader = True
 
     def update(self):
         """update the possible positions of the insect, independently of the other insects"""

@@ -3,6 +3,7 @@
 from insects import Insects
 from color import Color
 from constants import NUMBERS
+from copy import deepcopy
 
 
 class Board:
@@ -25,6 +26,12 @@ class Board:
         self.edge = self.size - self.width + 1  # length of the diagonal from the side
         self.iter = range(len(self))
 
+        self.game = False
+        self.setback = False
+        # self.capture = False
+        self.turn = Color()
+        self.caption = ''
+
         # initialisation methods
         self.generate_array()
 
@@ -45,7 +52,7 @@ class Board:
             self[pos] = None
 
     # loading and saving board methods
-    def from_cvn(self, cvn='5/g4G/sg3GS/tlg2GLT/abbg1GBBA/tlg2GLT/sg3GS/g4G/5'):
+    def from_cvn(self, cvn='5/g4G/sg3GS/tlg2GLT/abbg1GBBA/tlg2GLT/sg3GS/g4G/5', update=True):
         """convert a cvn string to the board"""
         self.reset_board()  # clean the board
         cvn = cvn.split('/')
@@ -72,6 +79,9 @@ class Board:
                     cells += 1
         if cells != len(self.cells):
             raise ValueError(f'Expected {len(self.cells)} cells, got {cells}')
+
+        if update:
+            self.update()
 
     def to_cvn(self):
         """return the cvn of the board"""
@@ -100,15 +110,86 @@ class Board:
     def update(self):
         """update and calculate the moves of each insects"""
         self.insects = []
-        for cell in self.cells:
-            if self[cell] is not None:
-                insect = self[cell]
+        for pos in self.cells:
+            if self[pos] is not None:
+                insect = self[pos]
                 insect.update_check()
                 self.insects.append(insect)
 
+    def check(self):
+        """check if there is any setback or possible move"""
+        moves = 0
+        for insect in self.insects:
+            if insect.color == self.turn:
+                moves += len(insect.moves)
+            else:
+                for pos in insect.moves:
+                    if self[pos] is not None:
+                        attacked_insect = self[pos]
+                        if attacked_insect.leader:
+                            self.caption = 'setback'
+                            self.setback = True
+                            if len(attacked_insect.moves) == 0:
+                                self.caption = 'capture'
+                                self.game = False
+        if moves == 0:
+            self.caption = 'no moves'
+            self.game = False
+
+    def illegal_moves(self):
+        """remove illegal moves"""
+        array = deepcopy(self.array)
+        for insect in self.insects:
+            if insect.color == self.turn:
+                for pos in insect.moves:
+                    self.move(old_pos=insect.pos, new_pos=pos, simulation=True)
+                    if self.setback:
+                        print(pos)
+                        insect.moves.remove(pos)
+                    self.recover(array)
+
+    def recover(self, array):
+        """repair a board from an array"""
+        for pos in self.cells:
+            self[pos] = array[pos]
+        self.caption = ''
+        self.setback = False
+
     def select(self, pos):
         """select the insect on this cell"""
-        self.insect = self[pos]
+        if self[pos] is not None:
+            insect = self[pos]
+            if insect.color == self.turn:
+                self.insect = insect
+
+    def move(self, new_pos, old_pos=None, legit=True, turn=True, simulation=False):
+        """move an insect"""
+        if old_pos is None:
+            old_pos = self.insect.pos
+
+        legit = legit and new_pos in self[old_pos].moves or not legit
+        turn = turn and self[old_pos].color == self.turn or not turn
+        if self[new_pos] is None or self[new_pos].color != self.turn:
+            if legit and turn:
+                self[new_pos] = self[old_pos]
+                self[old_pos] = None
+                if not simulation:
+                    self.insect = None
+                    self[new_pos].pos = new_pos
+                    self.change_turn()
+        else:
+            self.caption = 'unavailable move'
+
+    def change_turn(self):
+        """change turn"""
+        self.turn.change()
+        self.calcs()
+
+    def calcs(self):
+        """calculate moves"""
+        self.check()
+        self.illegal_moves()
+        self.update()
 
     # special methods
     def __repr__(self):
@@ -125,6 +206,7 @@ class Board:
                 else:
                     out += ' '  # not a cell
                 out += ' '  # spacer
+        out += self.caption
         return out
 
     def __len__(self):
@@ -145,3 +227,8 @@ class Board:
     def __contains__(self, item):
         """item in self : return True if the item is the pos of a cell"""
         return item in self.cells
+
+    def __copy__(self):
+        new = type(self)()
+        new.__dict__.update(self.__dict__)
+        return new
