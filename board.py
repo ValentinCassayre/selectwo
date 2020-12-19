@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Contains the Board class"""
-from insects import insect_list
+from insects import Insects
 from color import Color
 from constants import NUMBERS
 
@@ -14,6 +14,9 @@ class Board:
         # initialisation of the variables with no value
         self.array = {}
         self.cells = []
+
+        self.insect = None
+        self.insects = []
 
         # initialisation of the values
         self.size = 9
@@ -36,9 +39,15 @@ class Board:
                     self.cells.append((i, j))
         self.cells = tuple(self.cells)  # lock the cells
 
+    def reset_board(self):
+        """remove everything on the board"""
+        for pos in self.cells:
+            self[pos] = None
+
     # loading and saving board methods
-    def from_cvn(self, cvn='5/6/7/8/9/8/7/6/5'):
+    def from_cvn(self, cvn='5/g4G/sg3GS/tlg2GLT/abbg1GBBA/tlg2GLT/sg3GS/g4G/5'):
         """convert a cvn string to the board"""
+        self.reset_board()  # clean the board
         cvn = cvn.split('/')
         if self.diagonals != len(cvn):
             raise ValueError(f'Expected {self.diagonals} diagonals, got {len(cvn)}')
@@ -55,9 +64,9 @@ class Board:
                     cells += int(key)
                 else:
                     color = Color(key == key.lower())  # create a color object based on the key (lowercase or uppercase)
-                    for insect in insect_list:
+                    for insect in Insects:
                         if key.lower() == insect.id():
-                            self[i, j] = insect((i, j), color)
+                            self[i, j] = insect((i, j), color, self)
                             break
                     i, j = i + 1, j + 1
                     cells += 1
@@ -87,6 +96,19 @@ class Board:
         """return the position of the first cell of the diagonal number k"""
         n = self.width - 1 - k
         return max(n, 0), abs(min(n, 0))
+
+    def update(self):
+        """update and calculate the moves of each insects"""
+        self.insects = []
+        for cell in self.cells:
+            if self[cell] is not None:
+                insect = self[cell]
+                insect.update_check()
+                self.insects.append(insect)
+
+    def select(self, pos):
+        """select the insect on this cell"""
+        self.insect = self[pos]
 
     # special methods
     def __repr__(self):
